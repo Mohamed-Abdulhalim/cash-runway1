@@ -149,13 +149,16 @@ export default function Home() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Current bank balance
               </label>
+              <p className="text-xs text-gray-400 mb-2">
+                Enter your actual bank balance so we can calculate your runway accurately. This won't be stored anywhere outside your account.
+              </p>
               <div className="flex gap-2">
                 <input
                   type="number"
                   value={bankBalance}
                   onChange={e => setBankBalance(e.target.value)}
                   placeholder="Enter your current balance"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={updateBalance}
