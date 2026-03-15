@@ -52,27 +52,30 @@ export default async function handler(req, res) {
     const bills = billsRes.status === 200 ? JSON.parse(await billsRes.text()) : { Invoices: [] }
 
     // fetch last 90 days of bank transactions for historical income forecast
-    const ninetyDaysAgo = new Date()
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-    const fromDate = ninetyDaysAgo.toISOString().split('T')[0]
-
-    const bankTxRes = await fetch(`https://api.xero.com/api.xro/2.0/BankTransactions?where=Type%3D%3D%22RECEIVE%22%26%26Status%3D%3D%22AUTHORISED%22&fromDate=${fromDate}`, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        'Xero-tenant-id': tenantId,
-        Accept: 'application/json'
+    let monthlyIncomeAverage = 0
+    try {
+      const bankTxRes = await fetch(`https://api.xero.com/api.xro/2.0/BankTransactions?where=Type%3D%3D%22RECEIVE%22%26%26Status%3D%3D%22AUTHORISED%22`, {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+          'Xero-tenant-id': tenantId,
+          Accept: 'application/json'
+        }
+      })
+      const bankTxText = await bankTxRes.text()
+      if (bankTxRes.status === 200 && bankTxText) {
+        const bankTx = JSON.parse(bankTxText)
+        const ninetyDaysAgo = new Date()
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+        const recentTransactions = (bankTx.BankTransactions || [])
+          .filter(tx => new Date(parseXeroDate(tx.Date)) >= ninetyDaysAgo)
+        const totalIncome = recentTransactions
+          .reduce((sum, tx) => sum + (tx.Total || 0), 0)
+        monthlyIncomeAverage = totalIncome / 3
+        console.log('Monthly average income:', monthlyIncomeAverage)
       }
-    })
-    const bankTxText = await bankTxRes.text()
-    const bankTx = bankTxRes.status === 200 ? JSON.parse(bankTxText) : { BankTransactions: [] }
-
-    // calculate average monthly income from last 90 days
-    const totalIncome = (bankTx.BankTransactions || [])
-      .reduce((sum, tx) => sum + (tx.Total || 0), 0)
-    const monthlyIncomeAverage = totalIncome / 3 // 90 days = 3 months
-
-    console.log('Total income last 90 days:', totalIncome)
-    console.log('Monthly average:', monthlyIncomeAverage)
+    } catch (e) {
+      console.log('Bank transactions unavailable, skipping historical forecast')
+    }
 
     const today = new Date()
 
@@ -89,16 +92,15 @@ export default async function handler(req, res) {
     })
 
     // build projected inflows from historical average
-    // spread monthly average across 2 future months as conservative forecast
     const projectedInflows = []
     if (monthlyIncomeAverage > 0) {
       for (let month = 1; month <= 2; month++) {
         const projectedDate = new Date()
         projectedDate.setMonth(projectedDate.getMonth() + month)
-        projectedDate.setDate(1) // first of each month
+        projectedDate.setDate(1)
         projectedInflows.push({
           id: `projected_${month}`,
-          amount: monthlyIncomeAverage * 0.8, // conservative 80% of average
+          amount: monthlyIncomeAverage * 0.8,
           due_date: projectedDate.toISOString().split('T')[0],
           is_overdue: false,
           type: 'projected'
