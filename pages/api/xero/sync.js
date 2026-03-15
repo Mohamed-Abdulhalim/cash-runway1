@@ -62,7 +62,26 @@ export default async function handler(req, res) {
     console.log('Bills status:', billsRes.status, 'body length:', billsText.length)
     const bills = (billsRes.status === 200 && billsText) ? JSON.parse(billsText) : { Invoices: [] }
 
-    // fetch last 90 days of bank transactions for historical income forecast
+    // fetch bank balance automatically
+    let startingCash = 0
+    try {
+      const accountsRes = await fetch('https://api.xero.com/api.xro/2.0/Accounts?where=Type%3D%3D%22BANK%22', {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+          'Xero-tenant-id': tenantId,
+          Accept: 'application/json'
+        }
+      })
+      const accountsText = await accountsRes.text()
+      if (accountsRes.status === 200 && accountsText) {
+        const accounts = JSON.parse(accountsText)
+        startingCash = (accounts.Accounts || [])
+          .reduce((sum, a) => sum + (a.Balance || 0), 0)
+        console.log('Bank balance from Xero:', startingCash)
+      }
+    } catch (e) {
+      console.log('Could not fetch bank balance, defaulting to 0')
+    }
     let monthlyIncomeAverage = 0
     try {
       const bankTxRes = await fetch(`https://api.xero.com/api.xro/2.0/BankTransactions?where=Type%3D%3D%22RECEIVE%22%26%26Status%3D%3D%22AUTHORISED%22`, {
@@ -132,7 +151,7 @@ export default async function handler(req, res) {
     })
 
     const snapshot = {
-      starting_cash: manualBalance !== null ? manualBalance : 0,
+      starting_cash: startingCash,
       inflows: allInflows,
       outflows
     }

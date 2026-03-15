@@ -18,7 +18,9 @@ export default async function handler(req, res) {
 
     const tokens = await response.json()
     await saveTokens(req, res, tokens)
-    res.redirect('/')
+
+    // auto-trigger sync after connecting
+    res.redirect('/?sync=true')
   } catch (err) {
     console.error('Xero callback error:', err.message)
     res.status(500).json({ error: 'Xero authentication failed' })
