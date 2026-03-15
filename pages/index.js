@@ -58,7 +58,13 @@ export default function Home() {
       }
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
-        if (json.error?.includes('token') || json.error?.includes('connected') || json.error?.includes('tenant')) {
+        if (
+          json.error?.includes('token') ||
+          json.error?.includes('connected') ||
+          json.error?.includes('tenant') ||
+          json.error?.includes('getTokens') ||
+          json.error?.includes('getSnapshot')
+        ) {
           setError('xero_not_connected')
           return
         }
