@@ -39,7 +39,9 @@ export default async function handler(req, res) {
         Accept: 'application/json'
       }
     })
-    const invoices = invoicesRes.status === 200 ? JSON.parse(await invoicesRes.text()) : { Invoices: [] }
+    const invoicesText = await invoicesRes.text()
+    console.log('Invoices status:', invoicesRes.status, 'body length:', invoicesText.length)
+    const invoices = (invoicesRes.status === 200 && invoicesText) ? JSON.parse(invoicesText) : { Invoices: [] }
 
     // fetch confirmed bills (payables)
     const billsRes = await fetch('https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%3D%22AUTHORISED%22%26%26Type%3D%3D%22ACCPAY%22', {
@@ -49,7 +51,9 @@ export default async function handler(req, res) {
         Accept: 'application/json'
       }
     })
-    const bills = billsRes.status === 200 ? JSON.parse(await billsRes.text()) : { Invoices: [] }
+    const billsText = await billsRes.text()
+    console.log('Bills status:', billsRes.status, 'body length:', billsText.length)
+    const bills = (billsRes.status === 200 && billsText) ? JSON.parse(billsText) : { Invoices: [] }
 
     // fetch last 90 days of bank transactions for historical income forecast
     let monthlyIncomeAverage = 0
