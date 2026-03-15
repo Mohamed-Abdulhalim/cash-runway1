@@ -6,10 +6,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    console.log('Step 1: parsing body')
+    let body = {}
+    try {
+      body = typeof req.body === 'string' ? (req.body ? JSON.parse(req.body) : {}) : (req.body || {})
+    } catch (e) {
+      body = {}
+    }
     const manualBalance = body?.manual_balance ?? null
-
+    console.log('Step 2: getting tokens')
     const tokens = await getTokens(req, res)
+    console.log('Step 3: tokens retrieved, access_token exists:', !!tokens?.access_token)
 
     const connections = await fetch('https://api.xero.com/connections', {
       headers: {
