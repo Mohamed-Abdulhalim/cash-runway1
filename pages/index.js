@@ -56,6 +56,14 @@ export default function Home() {
         setError('xero_not_connected')
         return
       }
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}))
+        if (json.error?.includes('token') || json.error?.includes('connected') || json.error?.includes('tenant')) {
+          setError('xero_not_connected')
+          return
+        }
+        throw new Error('Sync failed')
+      }
       if (!res.ok) throw new Error('Sync failed')
       await fetchRunway()
     } catch (err) {
