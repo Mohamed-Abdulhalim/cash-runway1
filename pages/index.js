@@ -52,6 +52,10 @@ export default function Home() {
     setError(null)
     try {
       const res = await fetch('/api/xero/sync', { method: 'POST' })
+      if (res.status === 400) {
+        setError('xero_not_connected')
+        return
+      }
       if (!res.ok) throw new Error('Sync failed')
       await fetchRunway()
     } catch (err) {
@@ -177,10 +181,25 @@ export default function Home() {
           {/* Error */}
           {error && !loading && (
             <div className="bg-[#FFF8F0] border border-[#FED7AA] rounded-2xl p-5">
-              <p className="text-[#EA580C] text-sm font-medium">{error}</p>
-              <button onClick={fetchRunway} className="mt-2 text-sm text-[#EA580C] underline underline-offset-2">
-                Try again
-              </button>
+              {error === 'xero_not_connected' ? (
+                <>
+                  <p className="text-[#EA580C] text-sm font-medium">Xero not connected yet</p>
+                  <p className="text-[#EA580C] text-xs mt-1 mb-3">Connect your Xero account first to get your cash runway verdict.</p>
+                  
+                    <a href="/api/auth/xero"
+                    className="inline-block px-4 py-2 bg-[#1A1A1A] text-white rounded-lg text-sm font-medium hover:bg-[#333] transition-colors"
+                  >
+                    Connect Xero
+                  </a>
+                </>
+              ) : (
+                <>
+                  <p className="text-[#EA580C] text-sm font-medium">{error}</p>
+                  <button onClick={fetchRunway} className="mt-2 text-sm text-[#EA580C] underline underline-offset-2">
+                    Try again
+                  </button>
+                </>
+              )}
             </div>
           )}
 
