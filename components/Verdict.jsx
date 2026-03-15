@@ -1,6 +1,6 @@
 import { CheckCircle, AlertTriangle } from 'lucide-react'
 
-export default function Verdict({ verdict, cash_at_end }) {
+export default function Verdict({ verdict, cash_at_end, has_projected }) {
   const isFine = verdict === 'fine'
 
   return (
@@ -25,6 +25,12 @@ export default function Verdict({ verdict, cash_at_end }) {
           : `Projected shortfall in 60 days: $${Math.abs(cash_at_end).toFixed(2)}`
         }
       </p>
+
+      {has_projected && (
+        <p className="text-xs text-gray-400 mt-3">
+          Includes conservative income forecast based on last 90 days of transactions
+        </p>
+      )}
     </div>
   )
 }

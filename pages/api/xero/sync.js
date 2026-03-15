@@ -24,26 +24,6 @@ export default async function handler(req, res) {
 
     const tenantId = connections[0].tenantId
 
-    const invoicesRes = await fetch('https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%3D%22AUTHORISED%22%26%26Type%3D%3D%22ACCREC%22', {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        'Xero-tenant-id': tenantId,
-        Accept: 'application/json'
-      }
-    })
-    const invoicesText = await invoicesRes.text()
-    const invoices = invoicesRes.status === 200 ? JSON.parse(invoicesText) : { Invoices: [] }
-
-    const billsRes = await fetch('https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%3D%22AUTHORISED%22%26%26Type%3D%3D%22ACCPAY%22', {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-        'Xero-tenant-id': tenantId,
-        Accept: 'application/json'
-      }
-    })
-    const billsText = await billsRes.text()
-    const bills = billsRes.status === 200 ? JSON.parse(billsText) : { Invoices: [] }
-
     function parseXeroDate(dateStr) {
       if (!dateStr) return null
       const match = dateStr.match(/\/Date\((\d+)/)
@@ -51,36 +31,97 @@ export default async function handler(req, res) {
       return dateStr
     }
 
+    // fetch confirmed invoices (receivables)
+    const invoicesRes = await fetch('https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%3D%22AUTHORISED%22%26%26Type%3D%3D%22ACCREC%22', {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        'Xero-tenant-id': tenantId,
+        Accept: 'application/json'
+      }
+    })
+    const invoices = invoicesRes.status === 200 ? JSON.parse(await invoicesRes.text()) : { Invoices: [] }
+
+    // fetch confirmed bills (payables)
+    const billsRes = await fetch('https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%3D%22AUTHORISED%22%26%26Type%3D%3D%22ACCPAY%22', {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        'Xero-tenant-id': tenantId,
+        Accept: 'application/json'
+      }
+    })
+    const bills = billsRes.status === 200 ? JSON.parse(await billsRes.text()) : { Invoices: [] }
+
+    // fetch last 90 days of bank transactions for historical income forecast
+    const ninetyDaysAgo = new Date()
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const fromDate = ninetyDaysAgo.toISOString().split('T')[0]
+
+    const bankTxRes = await fetch(`https://api.xero.com/api.xro/2.0/BankTransactions?where=Type%3D%3D%22RECEIVE%22%26%26Status%3D%3D%22AUTHORISED%22&fromDate=${fromDate}`, {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        'Xero-tenant-id': tenantId,
+        Accept: 'application/json'
+      }
+    })
+    const bankTxText = await bankTxRes.text()
+    const bankTx = bankTxRes.status === 200 ? JSON.parse(bankTxText) : { BankTransactions: [] }
+
+    // calculate average monthly income from last 90 days
+    const totalIncome = (bankTx.BankTransactions || [])
+      .reduce((sum, tx) => sum + (tx.Total || 0), 0)
+    const monthlyIncomeAverage = totalIncome / 3 // 90 days = 3 months
+
+    console.log('Total income last 90 days:', totalIncome)
+    console.log('Monthly average:', monthlyIncomeAverage)
+
     const today = new Date()
 
-    // if manual balance provided use it, otherwise keep existing or default to 0
-    let startingCash = 0
-    if (manualBalance !== null) {
-      startingCash = manualBalance
+    // build confirmed inflows from invoices
+    const confirmedInflows = (invoices.Invoices || []).map(inv => {
+      const dueDate = parseXeroDate(inv.DueDate)
+      return {
+        id: inv.InvoiceID,
+        amount: inv.AmountDue,
+        due_date: dueDate,
+        is_overdue: dueDate ? new Date(dueDate) < today : false,
+        type: 'confirmed'
+      }
+    })
+
+    // build projected inflows from historical average
+    // spread monthly average across 2 future months as conservative forecast
+    const projectedInflows = []
+    if (monthlyIncomeAverage > 0) {
+      for (let month = 1; month <= 2; month++) {
+        const projectedDate = new Date()
+        projectedDate.setMonth(projectedDate.getMonth() + month)
+        projectedDate.setDate(1) // first of each month
+        projectedInflows.push({
+          id: `projected_${month}`,
+          amount: monthlyIncomeAverage * 0.8, // conservative 80% of average
+          due_date: projectedDate.toISOString().split('T')[0],
+          is_overdue: false,
+          type: 'projected'
+        })
+      }
     }
 
+    const allInflows = [...confirmedInflows, ...projectedInflows]
+
+    const outflows = (bills.Invoices || []).map(bill => {
+      const dueDate = parseXeroDate(bill.DueDate)
+      return {
+        id: bill.InvoiceID,
+        amount: bill.AmountDue,
+        due_date: dueDate,
+        is_overdue: dueDate ? new Date(dueDate) < today : false
+      }
+    })
+
     const snapshot = {
-      starting_cash: startingCash,
-
-      inflows: (invoices.Invoices || []).map(inv => {
-        const dueDate = parseXeroDate(inv.DueDate)
-        return {
-          id: inv.InvoiceID,
-          amount: inv.AmountDue,
-          due_date: dueDate,
-          is_overdue: dueDate ? new Date(dueDate) < today : false
-        }
-      }),
-
-      outflows: (bills.Invoices || []).map(bill => {
-        const dueDate = parseXeroDate(bill.DueDate)
-        return {
-          id: bill.InvoiceID,
-          amount: bill.AmountDue,
-          due_date: dueDate,
-          is_overdue: dueDate ? new Date(dueDate) < today : false
-        }
-      })
+      starting_cash: manualBalance !== null ? manualBalance : 0,
+      inflows: allInflows,
+      outflows
     }
 
     await saveSnapshot(req, res, snapshot)

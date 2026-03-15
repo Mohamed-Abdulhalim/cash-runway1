@@ -9,12 +9,13 @@ export default async function handler(req, res) {
   try {
     const snapshot = await getSnapshot(req, res)
     const result = computeRunway(snapshot)
+    const hasProjected = (snapshot.inflows || []).some(i => i.type === 'projected')
     res.json({
       ...result,
+      has_projected: hasProjected,
       last_synced_at: snapshot.last_synced_at
     })
   } catch (err) {
-    // no snapshot yet means user hasn't connected Xero
     if (err.message.includes('coerce') || err.message.includes('getSnapshot')) {
       return res.status(404).json({ error: 'no_snapshot' })
     }

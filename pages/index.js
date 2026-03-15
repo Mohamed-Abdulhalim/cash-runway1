@@ -142,7 +142,7 @@ export default function Home() {
 
         {data && !loading && (
           <>
-            <Verdict verdict={data.verdict} cash_at_end={data.cash_at_end} />
+            <Verdict verdict={data.verdict} cash_at_end={data.cash_at_end} has_projected={data.has_projected} />
             <RiskItems items={data.risk_items} />
 
             <div className="mt-6 p-4 bg-white rounded-xl border border-gray-200">
