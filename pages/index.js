@@ -4,6 +4,7 @@ import Verdict from '../components/Verdict'
 import RiskItems from '../components/RiskItems'
 import { RefreshCw, LogOut, Zap, Shield, TrendingUp } from 'lucide-react'
 import Head from 'next/head'
+import Link from 'next/link'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -99,7 +100,7 @@ export default function Home() {
   }
 
   if (status === 'unauthenticated') {
-    return <LandingPage onSignIn={() => signIn('google')} />
+    return <LandingPage onSignIn={() => signIn('xero', { callbackUrl: '/?sync=true' })} />
   }
 
   return (
@@ -134,7 +135,7 @@ export default function Home() {
                 </button>
               )}
               <div className="h-4 w-px bg-[#E8E6E0]" />
-              <span className="text-sm text-[#6B6B6B]">{session?.user?.email}</span>
+              <span className="text-sm text-[#6B6B6B]">{session?.user?.name}</span>
               <button
                 onClick={() => signOut()}
                 className="flex items-center gap-1.5 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors"
@@ -148,7 +149,7 @@ export default function Home() {
         <main className="max-w-2xl mx-auto px-6 py-10">
 
           {/* Connect Xero */}
-          {!data && !loading && !error && (
+          {!data && !loading && !error && !syncing && (
             <div className="space-y-6">
               <div>
                 <h1 className="text-2xl font-semibold text-[#1A1A1A] tracking-tight">Good to see you.</h1>
@@ -175,7 +176,7 @@ export default function Home() {
                   </div>
                 </div>
                 
-                  <a href="/api/auth/xero"
+                <a href="/api/auth/signin/xero"
                   className="block w-full text-center py-3 px-6 bg-[#1A1A1A] text-white rounded-xl font-medium hover:bg-[#333] transition-colors mt-2"
                 >
                   Connect Xero
@@ -233,7 +234,7 @@ export default function Home() {
                 <p className="text-xs text-[#BDBDBD]">
                   Last synced: {data.last_synced_at ? new Date(data.last_synced_at).toLocaleString() : 'just now'}
                 </p>
-                <a href="/api/auth/xero" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors underline underline-offset-2">
+                <a href="/api/auth/signin/xero" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors underline underline-offset-2">
                   Reconnect Xero
                 </a>
               </div>
@@ -293,7 +294,7 @@ function LandingPage({ onSignIn }) {
             onClick={onSignIn}
             className="px-8 py-4 bg-[#1A1A1A] text-white rounded-xl font-medium text-base hover:bg-[#333] transition-colors shadow-lg shadow-black/10"
           >
-            Get started with Google
+            Get started with Xero
           </button>
 
           <p className="text-xs text-[#BDBDBD] mt-4">Free · No credit card · Xero required</p>
@@ -313,6 +314,19 @@ function LandingPage({ onSignIn }) {
             ))}
           </div>
         </div>
+        <footer className="border-t border-[#E8E6E0] px-6 py-6">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <p className="text-xs text-[#BDBDBD]">© 2026 Cash Runway</p>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">
+                Terms of Service
+              </Link>
+            </div>
+          </div>
+        </footer>
       </div>
     </>
   )
