@@ -1,16 +1,21 @@
 import NextAuth from 'next-auth'
 import { supabase } from '../../../lib/supabase'
 
+
+
 export const authOptions = {
   providers: [
     {
       id: 'xero',
       name: 'Xero',
       type: 'oauth',
+      issuer: 'https://identity.xero.com',
+      idToken: true,
+      jwks_endpoint: 'https://identity.xero.com/.well-known/openid-configuration/jwks',
       authorization: {
         url: 'https://login.xero.com/identity/connect/authorize',
         params: {
-          scope: 'accounting.invoices accounting.payments accounting.contacts accounting.settings offline_access',
+          scope: 'openid profile email accounting.invoices.read accounting.payments.read accounting.banktransactions.read accounting.reports.banksummary.read accounting.contacts.read offline_access',
           response_type: 'code',
         }
       },

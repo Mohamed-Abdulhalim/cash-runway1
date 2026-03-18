@@ -65,22 +65,37 @@ export default async function handler(req, res) {
     // fetch bank balance automatically
     let startingCash = 0
     try {
-      const accountsRes = await fetch('https://api.xero.com/api.xro/2.0/Accounts?where=Type%3D%3D%22BANK%22', {
+      const summaryRes = await fetch('https://api.xero.com/api.xro/2.0/Reports/BankSummary', {
         headers: {
           Authorization: `Bearer ${tokens.access_token}`,
           'Xero-tenant-id': tenantId,
           Accept: 'application/json'
         }
       })
-      const accountsText = await accountsRes.text()
-      if (accountsRes.status === 200 && accountsText) {
-        const accounts = JSON.parse(accountsText)
-        startingCash = (accounts.Accounts || [])
-          .reduce((sum, a) => sum + (a.Balance || 0), 0)
-        console.log('Bank balance from Xero:', startingCash)
+      const summaryText = await summaryRes.text()
+      console.log('BankSummary status:', summaryRes.status)
+      console.log('BankSummary raw:', summaryText.slice(0, 500))
+
+      if (summaryRes.status === 200 && summaryText) {
+        const summary = JSON.parse(summaryText)
+        const rows = summary?.Reports?.[0]?.Rows ?? []
+
+        // Find the Section row that contains account balances
+        const accountSection = rows.find(r => r.RowType === 'Section')
+        const accountRows = accountSection?.Rows ?? []
+
+        startingCash = accountRows.reduce((sum, row) => {
+          // Each account row has Cells: [AccountName, Debit, Credit, Balance]
+          const cells = row.Cells ?? []
+          const balanceCell = cells[3]
+          const val = parseFloat(balanceCell?.Value ?? '0')
+          return sum + (isNaN(val) ? 0 : val)
+        }, 0)
+
+        console.log('Bank balance from BankSummary:', startingCash)
       }
     } catch (e) {
-      console.log('Could not fetch bank balance, defaulting to 0')
+      console.log('Could not fetch bank balance:', e.message)
     }
 
     let monthlyIncomeAverage = 0
@@ -93,6 +108,8 @@ export default async function handler(req, res) {
         }
       })
       const bankTxText = await bankTxRes.text()
+      console.log('BankTx status:', bankTxRes.status, 'body length:', bankTxText.length)  // add this
+      console.log('BankTx raw:', bankTxText.slice(0, 300))  // add this
       if (bankTxRes.status === 200 && bankTxText) {
         const bankTx = JSON.parse(bankTxText)
         const ninetyDaysAgo = new Date()
