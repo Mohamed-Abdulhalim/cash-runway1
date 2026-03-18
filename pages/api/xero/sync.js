@@ -83,14 +83,14 @@ export default async function handler(req, res) {
         // Find the Section row that contains account balances
         const accountSection = rows.find(r => r.RowType === 'Section')
         const accountRows = accountSection?.Rows ?? []
-
-        startingCash = accountRows.reduce((sum, row) => {
-          // Each account row has Cells: [AccountName, Debit, Credit, Balance]
-          const cells = row.Cells ?? []
-          const balanceCell = cells[3]
-          const val = parseFloat(balanceCell?.Value ?? '0')
-          return sum + (isNaN(val) ? 0 : val)
-        }, 0)
+        startingCash = accountRows
+          .filter(row => row.RowType === 'Row')
+          .reduce((sum, row) => {
+            const cells = row.Cells ?? []
+            const balanceCell = cells[cells.length - 1]
+            const val = parseFloat(balanceCell?.Value ?? '0')
+            return sum + (isNaN(val) ? 0 : val)
+          }, 0)
 
         console.log('Bank balance from BankSummary:', startingCash)
       }
@@ -108,8 +108,6 @@ export default async function handler(req, res) {
         }
       })
       const bankTxText = await bankTxRes.text()
-      console.log('BankTx status:', bankTxRes.status, 'body length:', bankTxText.length)  // add this
-      console.log('BankTx raw:', bankTxText.slice(0, 300))  // add this
       if (bankTxRes.status === 200 && bankTxText) {
         const bankTx = JSON.parse(bankTxText)
         const ninetyDaysAgo = new Date()
