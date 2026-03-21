@@ -61,7 +61,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">6. Data retention</h2>
-              <p className="text-sm leading-relaxed">We retain your data for as long as you have an active account. You can request deletion of your data at any time by emailing mohamed.data.solutions@gmail.com. We will delete all your data within 7 days of your request.</p>
+              <p className="text-sm leading-relaxed">We retain your data for as long as you have an active account. You can request deletion of your data at any time by emailing mohamed@halim.pro. We will delete all your data within 7 days of your request.</p>
             </section>
 
             <section>
