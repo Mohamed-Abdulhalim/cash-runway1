@@ -82,7 +82,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">9. Contact</h2>
-              <p className="text-sm leading-relaxed">For any privacy related questions, email us at mohamed.data.solutions@gmail.com</p>
+              <p className="text-sm leading-relaxed">For any privacy related questions, email us at mohamed@halim.pro</p>
             </section>
 
           </div>
