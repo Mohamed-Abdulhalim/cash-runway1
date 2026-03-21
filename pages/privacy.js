@@ -51,7 +51,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">4. Data storage</h2>
-              <p className="text-sm leading-relaxed">Your data is stored securely using Supabase (hosted on AWS). We store a snapshot of your most recent sync. Previous snapshots are overwritten on each sync — we do not maintain a history of your financial data.</p>
+              <p className="text-sm leading-relaxed">Your data is stored securely using Supabase (hosted on AWS). We store a snapshot of your most recent sync. Previous snapshots are overwritten on each sync - we do not maintain a history of your financial data.</p>
             </section>
 
             <section>
