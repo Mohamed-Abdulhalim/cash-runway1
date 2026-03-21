@@ -28,7 +28,7 @@ export default function Privacy() {
 
             <section>
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">1. Who we are</h2>
-              <p className="text-sm leading-relaxed">Cash Runway is an independent product built and operated by Mohamed Abdelhalim, an individual developer based in Egypt. You can contact us at mohamed@halim.pro.</p>
+              <p className="text-sm leading-relaxed">Cash Runway is an independent product built and operated by Mohamed Abdelhalim, an individual developer. You can contact us at mohamed@halim.pro.</p>
             </section>
 
             <section>
