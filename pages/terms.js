@@ -79,7 +79,7 @@ export default function Terms() {
 
             <section>
               <h2 className="text-lg font-semibold text-[#1A1A1A] mb-2">10. Contact</h2>
-              <p className="text-sm leading-relaxed">For any questions about these terms, email us at mohamed.data.solutions@gmail.com</p>
+              <p className="text-sm leading-relaxed">For any questions about these terms, email us at mohamed@halim.pro</p>
             </section>
 
           </div>
