@@ -451,7 +451,7 @@ function LandingPage({ onSignIn }) {
               <span className="font-semibold text-[#1A1A1A] tracking-tight">Cash Runway</span>
             </div>
             <div className="flex items-center gap-6">
-              <a href="mailto:mohamed.data.solutions@gmail.com" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Contact</a>
+              <a href="mailto:mohamed@halim.pro" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Contact</a>
               <Link href="/privacy" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Privacy</Link>
               <Link href="/terms" className="text-xs text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors">Terms</Link>
             </div>
