@@ -41,11 +41,17 @@ export const authOptions = {
 
   callbacks: {
     async signIn({ user, account }) {
+      let step = 'users'
       try {
+        if (!process.env.TOKEN_ENCRYPTION_KEY) {
+          step = 'key'
+          throw new Error('TOKEN_ENCRYPTION_KEY is not set')
+        }
         const { error } = await supabase
           .from('users')
           .upsert({ id: user.id, email: user.email, name: user.name, updated_at: new Date().toISOString() }, { onConflict: 'id' })
         if (error) throw new Error(error.message)
+        step = 'tokens'
         let tenantId
         try {
           const orgs = await listOrganisations(account.access_token)
@@ -59,11 +65,12 @@ export const authOptions = {
           expires_at: (account.expires_at || Math.floor(Date.now() / 1000) + 1800) * 1000,
           tenant_id: tenantId,
         })
+        step = 'snapshot'
         await supabase.from('user_snapshots').delete().eq('user_id', user.id)
         return true
       } catch (err) {
-        console.error('sign-in failed:', err.message)
-        return '/?error=signin'
+        console.error(`sign-in failed at ${step}:`, err.message)
+        return `/?error=signin_${step}`
       }
     },
     async jwt({ token, user }) {

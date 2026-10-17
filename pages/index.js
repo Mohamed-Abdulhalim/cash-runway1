@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { ArrowRight, Eye, Lock, Calculator, Ban } from 'lucide-react'
 import Layout from '../components/Layout'
 import AuthButtons from '../components/AuthButtons'
@@ -35,10 +36,36 @@ const ignores = [
   'Payments scheduled outside Xero',
 ]
 
+const ERRORS = {
+  signin_key: 'Sign-in failed: the server is missing its token encryption key (TOKEN_ENCRYPTION_KEY).',
+  signin_users: 'Sign-in failed while saving your account to the database (users table).',
+  signin_tokens: 'Sign-in failed while saving your Xero connection (user_tokens table).',
+  signin_snapshot: 'Sign-in failed while resetting your previous sync (user_snapshots table).',
+  OAuthCallback: 'Xero sent you back, but the sign-in could not be completed (OAuth callback error).',
+  OAuthSignin: 'Could not start the Xero sign-in (OAuth sign-in error).',
+  AccessDenied: 'Sign-in was cancelled or denied.',
+  Callback: 'Sign-in failed during the callback step.',
+  Configuration: 'The server sign-in configuration is incomplete.',
+}
+
+function SignInError() {
+  const router = useRouter()
+  const code = router.isReady ? String(router.query.error || '') : ''
+  if (!code) return null
+  return (
+    <div className="max-w-5xl mx-auto px-5 pt-6">
+      <div className="rounded-xl border border-[#FECACA] bg-[#FFF5F5] px-4 py-3 text-sm text-[#991B1B]">
+        {ERRORS[code] || 'Sign-in failed.'} <span className="text-[#B91C1C]/70">Error code: {code}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function Home({ preview }) {
   const r = preview.result
   return (
     <Layout right={<AuthButtons />}>
+      <SignInError />
       <section className="max-w-5xl mx-auto px-5 pt-14 pb-10 grid lg:grid-cols-[1.1fr_1fr] gap-10 items-center">
         <div>
           <p className="text-sm font-medium text-[#6B6B6B]">For small businesses on Xero</p>
