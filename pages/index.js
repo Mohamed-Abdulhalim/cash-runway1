@@ -51,11 +51,12 @@ const ERRORS = {
 function SignInError() {
   const router = useRouter()
   const code = router.isReady ? String(router.query.error || '') : ''
+  const detail = router.isReady ? String(router.query.detail || '').replace(/[^A-Za-z0-9_]/g, '') : ''
   if (!code) return null
   return (
     <div className="max-w-5xl mx-auto px-5 pt-6">
       <div className="rounded-xl border border-[#FECACA] bg-[#FFF5F5] px-4 py-3 text-sm text-[#991B1B]">
-        {ERRORS[code] || 'Sign-in failed.'} <span className="text-[#B91C1C]/70">Error code: {code}</span>
+        {ERRORS[code] || 'Sign-in failed.'} <span className="text-[#B91C1C]/70">Error code: {code}{detail ? ` (${detail})` : ''}</span>
       </div>
     </div>
   )

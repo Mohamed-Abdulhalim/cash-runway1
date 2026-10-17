@@ -50,7 +50,11 @@ export const authOptions = {
         const { error } = await supabase
           .from('users')
           .upsert({ id: user.id, email: user.email, name: user.name, updated_at: new Date().toISOString() }, { onConflict: 'id' })
-        if (error) throw new Error(error.message)
+        if (error) {
+          const e = new Error(error.message)
+          e.dbCode = error.code
+          throw e
+        }
         step = 'tokens'
         let tenantId
         try {
@@ -70,7 +74,8 @@ export const authOptions = {
         return true
       } catch (err) {
         console.error(`sign-in failed at ${step}:`, err.message)
-        return `/?error=signin_${step}`
+        const detail = String(err.dbCode || err.code || '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 12)
+        return `/?error=signin_${step}${detail ? `&detail=${detail}` : ''}`
       }
     },
     async jwt({ token, user }) {
