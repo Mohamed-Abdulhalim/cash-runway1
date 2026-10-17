@@ -23,6 +23,11 @@ export default async function handler(req, res) {
       org_name: snap.data.org_name,
       currency: snap.data.base_currency,
       bank_balance_found: snap.data.bank_balance_found !== false,
+      empty: snap.data.bank_balance_found === false
+        && !(snap.data.receivables || []).length
+        && !(snap.data.payables || []).length
+        && !(snap.data.spend_history || []).length
+        && !(snap.data.income_history || []).length,
       last_synced_at: snap.last_synced_at,
       commitments,
       result,

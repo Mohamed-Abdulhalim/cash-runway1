@@ -159,7 +159,15 @@ export default function App() {
           </Panel>
         )}
 
-        {state.phase === 'ready' && data && (
+        {state.phase === 'ready' && data?.empty && (
+          <Panel title={`${data.org_name || 'This organisation'} has no data yet`}>
+            <p className="text-sm text-[#6B6B6B]">We found no unpaid invoices, no bills, no bank accounts and no bank transactions in the last 90 days, so there is nothing to project.</p>
+            <p className="text-sm text-[#6B6B6B] mt-2">To try Cash Runway with realistic data, open Xero&rsquo;s free Demo Company once in Xero, then reconnect here and tick it on Xero&rsquo;s approval screen. You can switch organisations from the menu above afterwards.</p>
+            <button type="button" onClick={() => signIn('xero', { callbackUrl: '/app?sync=1' })} className="mt-4 px-4 py-2.5 rounded-xl bg-[#1A1A1A] text-white text-sm font-medium">Connect another organisation</button>
+          </Panel>
+        )}
+
+        {state.phase === 'ready' && data && !data.empty && (
           <Dashboard
             result={data.result}
             currency={data.currency}
