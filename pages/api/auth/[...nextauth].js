@@ -1,7 +1,18 @@
 import NextAuth from 'next-auth'
 import { supabase } from '../../../lib/supabase'
+import { storeTokens, listOrganisations } from '../../../lib/xero'
 
-
+const SCOPES = [
+  'openid',
+  'profile',
+  'email',
+  'offline_access',
+  'accounting.invoices.read',
+  'accounting.payments.read',
+  'accounting.banktransactions.read',
+  'accounting.reports.banksummary.read',
+  'accounting.contacts.read',
+].join(' ')
 
 export const authOptions = {
   providers: [
@@ -14,108 +25,64 @@ export const authOptions = {
       jwks_endpoint: 'https://identity.xero.com/.well-known/openid-configuration/jwks',
       authorization: {
         url: 'https://login.xero.com/identity/connect/authorize',
-        params: {
-          scope: 'openid profile email accounting.invoices.read accounting.payments.read accounting.banktransactions.read accounting.reports.banksummary.read accounting.contacts.read offline_access',
-          response_type: 'code',
-        }
+        params: { scope: SCOPES, response_type: 'code' },
       },
-      token: {
-        url: 'https://identity.xero.com/connect/token',
-      },
-      userinfo: {
-        async request({ tokens }) {
-          const res = await fetch('https://api.xero.com/connections', {
-            headers: { Authorization: `Bearer ${tokens.access_token}` }
-          })
-          const connections = await res.json()
-          return {
-            sub: connections?.[0]?.tenantId ?? tokens.access_token.substring(0, 20),
-            name: connections?.[0]?.tenantName ?? 'Xero User',
-            email: `xero_${connections?.[0]?.tenantId}@cashrunway.app`,
-            tenantId: connections?.[0]?.tenantId,
-            access_token: tokens.access_token,
-            refresh_token: tokens.refresh_token,
-            expires_at: tokens.expires_at,
-          }
-        }
-      },
+      token: { url: 'https://identity.xero.com/connect/token' },
       clientId: process.env.XERO_CLIENT_ID,
       clientSecret: process.env.XERO_CLIENT_SECRET,
-      client: {
-        token_endpoint_auth_method: 'client_secret_post',
-      },
+      client: { token_endpoint_auth_method: 'client_secret_post' },
       checks: ['state'],
-      profile(profile) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          tenantId: profile.tenantId,
-        }
-      }
-    }
+      profile(claims) {
+        const name = [claims.given_name, claims.family_name].filter(Boolean).join(' ') || claims.name || claims.email || 'Xero user'
+        return { id: claims.sub, name, email: claims.email || null }
+      },
+    },
   ],
 
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       try {
-        const { error: userError } = await supabase
+        const { error } = await supabase
           .from('users')
-          .upsert({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'id' })
-
-        if (userError) {
-          console.error('signIn upsert failed:', userError.message)
-          return false
+          .upsert({ id: user.id, email: user.email, name: user.name, updated_at: new Date().toISOString() }, { onConflict: 'id' })
+        if (error) throw new Error(error.message)
+        let tenantId
+        try {
+          const orgs = await listOrganisations(account.access_token)
+          tenantId = orgs[0]?.id ?? null
+        } catch {
+          tenantId = null
         }
-
-        const { error: tokenError } = await supabase
-          .from('user_tokens')
-          .upsert({
-            user_id: user.id,
-            access_token: account.access_token,
-            refresh_token: account.refresh_token,
-            tenant_id: profile?.tenantId ?? null,
-            expires_at: account.expires_at * 1000,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' })
-
-        if (tokenError) {
-          console.error('token upsert failed:', tokenError.message)
-          return false
-        }
-
+        await storeTokens(user.id, {
+          access_token: account.access_token,
+          refresh_token: account.refresh_token,
+          expires_at: (account.expires_at || Math.floor(Date.now() / 1000) + 1800) * 1000,
+          tenant_id: tenantId,
+        })
+        await supabase.from('user_snapshots').delete().eq('user_id', user.id)
         return true
       } catch (err) {
-        console.error('signIn error:', err.message)
-        return false
+        console.error('sign-in failed:', err.message)
+        return '/?error=signin'
       }
     },
-
-    async session({ session, token }) {
-      session.user.id = token.sub
-      session.user.name = token.name
-      return session
-    },
-
-    async jwt({ token, user, profile }) {
+    async jwt({ token, user }) {
       if (user) {
         token.sub = user.id
         token.name = user.name
       }
       return token
     },
+    async session({ session, token }) {
+      session.user.id = token.sub
+      session.user.name = token.name
+      return session
+    },
   },
 
-  session: {
-    strategy: 'jwt'
-  },
-
-  secret: process.env.NEXTAUTH_SECRET
+  pages: { error: '/' },
+  session: { strategy: 'jwt', maxAge: 60 * 60 * 24 * 30 },
+  secret: process.env.NEXTAUTH_SECRET,
 }
 
 export default NextAuth(authOptions)
