@@ -15,3 +15,5 @@ revoke all on public.users, public.user_tokens, public.user_snapshots, public.us
 
 delete from public.user_tokens where access_token not like 'enc:v1:%';
 delete from public.user_snapshots where data is null;
+
+alter table public.user_tokens alter column tenant_id drop not null;

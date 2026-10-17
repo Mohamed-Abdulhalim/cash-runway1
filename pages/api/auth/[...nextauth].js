@@ -32,9 +32,11 @@ export const authOptions = {
       clientSecret: process.env.XERO_CLIENT_SECRET,
       client: { token_endpoint_auth_method: 'client_secret_post' },
       checks: ['state'],
-      profile(claims) {
+      async profile(claims) {
         const name = [claims.given_name, claims.family_name].filter(Boolean).join(' ') || claims.name || claims.email || 'Xero user'
-        return { id: claims.sub, name, email: claims.email || null }
+        const email = (claims.email || `xero-${claims.sub}@users.invalid`).toLowerCase()
+        const { data } = await supabase.from('users').select('id').eq('email', email).maybeSingle()
+        return { id: data?.id || claims.sub, name, email }
       },
     },
   ],
